@@ -1,0 +1,211 @@
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+
+local uiOpen = true
+local autoCollect = false
+local autoSubmit = false
+local submitSpeed = 1
+local collectionLoop = nil
+local submissionLoop = nil
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "RizvanTigrGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 380, 0, 300)
+Frame.Position = UDim2.new(0.3, 0, 0.3, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
+Frame.Parent = ScreenGui
+
+local function createLabel(name, size, pos, text, fontSize, bold)
+    local label = Instance.new("TextLabel")
+    label.Name = name
+    label.Size = size
+    label.Position = pos
+    label.Text = text
+    label.Font = bold and Enum.Font.GothamBold or Enum.Font.Gotham
+    label.TextColor3 = Color3.new(1, 1, 1)
+    label.BackgroundTransparency = 1
+    label.TextSize = fontSize
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = Frame
+    return label
+end
+
+local function createButton(name, size, pos, text)
+    local btn = Instance.new("TextButton")
+    btn.Name = name
+    btn.Size = size
+    btn.Position = pos
+    btn.Text = text
+    btn.Font = Enum.Font.Gotham
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    btn.BorderSizePixel = 0
+    btn.AutoButtonColor = false
+    btn.TextSize = 14
+    btn.Parent = Frame
+    return btn
+end
+
+local Title = createLabel("Title", UDim2.new(1, 0, 0, 30), UDim2.new(0, 0, 0, 0), "Rizvan Tigr Grow a Garden v1.2", 16, true)
+Title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+
+local CloseButton = createButton("Close", UDim2.new(0, 30, 0, 30), UDim2.new(1, -30, 0, 0), "X")
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+CloseButton.TextSize = 14
+CloseButton.Font = Enum.Font.GothamBold
+
+local ToggleButton = createButton("Toggle", UDim2.new(0, 80, 0, 30), UDim2.new(0, 10, 0, 40), "Toggle UI")
+
+local Icon = Instance.new("ImageLabel")
+Icon.Size = UDim2.new(0, 50, 0, 50)
+Icon.Position = UDim2.new(1, -60, 0, 40)
+Icon.Image = "rbxassetid://YOUR_IMAGE_ID_HERE"
+Icon.BackgroundTransparency = 1
+Icon.Parent = Frame
+
+local UtilityLabel = createLabel("Utility", UDim2.new(1, -20, 0, 30), UDim2.new(0, 10, 0, 90), "Utility", 20, true)
+
+local AutoCollectButton = createButton("AutoCollect", UDim2.new(1, -20, 0, 40), UDim2.new(0, 10, 0, 130), "")
+local AutoSubmitButton = createButton("AutoSubmit", UDim2.new(1, -20, 0, 40), UDim2.new(0, 10, 0, 180), "")
+local SpeedLabel = createButton("SpeedLabel", UDim2.new(1, -20, 0, 40), UDim2.new(0, 10, 0, 230), "")
+local SpeedValue = Instance.new("TextBox")
+SpeedValue.Size = UDim2.new(0, 60, 0, 30)
+SpeedValue.Position = UDim2.new(1, -70, 0, 235)
+SpeedValue.TextColor3 = Color3.new(1, 1, 1)
+SpeedValue.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+SpeedValue.BorderSizePixel = 0
+SpeedValue.Font = Enum.Font.Gotham
+SpeedValue.TextSize = 14
+SpeedValue.ClearTextOnFocus = false
+SpeedValue.Parent = Frame
+
+local function SaveSettings()
+    LocalPlayer:SetAttribute("AutoCollect", autoCollect)
+    LocalPlayer:SetAttribute("AutoSubmit", autoSubmit)
+    LocalPlayer:SetAttribute("SubmitSpeed", submitSpeed)
+end
+
+local function LoadSettings()
+    autoCollect = LocalPlayer:GetAttribute("AutoCollect") or false
+    autoSubmit = LocalPlayer:GetAttribute("AutoSubmit") or false
+    submitSpeed = LocalPlayer:GetAttribute("SubmitSpeed") or 1
+end
+
+local function SafeFirePrompt(prompt)
+    pcall(function()
+        fireproximityprompt(prompt)
+    end)
+end
+
+local function findPrompts(folderName, namePattern)
+    local found = {}
+    local parent = workspace:FindFirstChild(folderName) or workspace
+    for _, obj in ipairs(parent:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") and obj.Name:lower():find(namePattern) then
+            table.insert(found, obj)
+        end
+    end
+    return found
+end
+
+local function collectPlants()
+    while autoCollect and task.wait(0.1) do
+        for _, prompt in ipairs(findPrompts("GardenPlots", "collect")) do
+            if not autoCollect then break end
+            SafeFirePrompt(prompt)
+            task.wait(0.05)
+        end
+    end
+end
+
+local function submitPlants()
+    while autoSubmit and task.wait(submitSpeed) do
+        for _, prompt in ipairs(findPrompts("SubmitArea", "submit")) do
+            if not autoSubmit then break end
+            SafeFirePrompt(prompt)
+        end
+    end
+end
+
+local function updateUI()
+    AutoCollectButton.Text = "Auto Collect Summer: " .. (autoCollect and "ON" or "OFF")
+    AutoCollectButton.BackgroundColor3 = autoCollect and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(60, 60, 60)
+    AutoSubmitButton.Text = "Auto Submit: " .. (autoSubmit and "ON" or "OFF")
+    AutoSubmitButton.BackgroundColor3 = autoSubmit and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(60, 60, 60)
+    SpeedLabel.Text = "Submit Speed: " .. string.format("%.1f", submitSpeed)
+    SpeedValue.Text = tostring(submitSpeed)
+end
+
+LoadSettings()
+updateUI()
+
+if autoCollect then
+    collectionLoop = task.spawn(collectPlants)
+end
+if autoSubmit then
+    submissionLoop = task.spawn(submitPlants)
+end
+
+CloseButton.MouseButton1Click:Connect(function()
+    Frame.Visible = false
+    uiOpen = false
+end)
+
+ToggleButton.MouseButton1Click:Connect(function()
+    uiOpen = not uiOpen
+    Frame.Visible = uiOpen
+end)
+
+AutoCollectButton.MouseButton1Click:Connect(function()
+    autoCollect = not autoCollect
+    SaveSettings()
+    updateUI()
+    if autoCollect then
+        if collectionLoop then task.cancel(collectionLoop) end
+        collectionLoop = task.spawn(collectPlants)
+    elseif collectionLoop then
+        task.cancel(collectionLoop)
+        collectionLoop = nil
+    end
+end)
+
+AutoSubmitButton.MouseButton1Click:Connect(function()
+    autoSubmit = not autoSubmit
+    SaveSettings()
+    updateUI()
+    if autoSubmit then
+        if submissionLoop then task.cancel(submissionLoop) end
+        submissionLoop = task.spawn(submitPlants)
+    elseif submissionLoop then
+        task.cancel(submissionLoop)
+        submissionLoop = nil
+    end
+end)
+
+SpeedValue:GetPropertyChangedSignal("Text"):Connect(function()
+    local clean = SpeedValue.Text:gsub("[^%d%.]", "")
+    if SpeedValue.Text ~= clean then
+        SpeedValue.Text = clean
+    end
+end)
+
+SpeedValue.FocusLost:Connect(function()
+    local val = tonumber(SpeedValue.Text)
+    if val and val >= 0.1 and val <= 10 then
+        submitSpeed = val
+        SaveSettings()
+        updateUI()
+    else
+        SpeedValue.Text = tostring(submitSpeed)
+    end
+end)
